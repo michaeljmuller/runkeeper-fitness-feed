@@ -43,9 +43,6 @@ class RunkeeperFeedWidget extends WP_Widget
 		echo '<div class="rk-logo">&nbsp;</div>';
 
 		# The title
-		if ( $title )
-			echo $before_title . $title . $after_title;
-		
 		if (empty($authCode)) {
 			echo '<div style="text-align:center;padding:10px;">';
 			echo '<p style="font-family:Helvetica Neue, Arial, sans-serif; font-size: 14px">You need to connect to runkeeper first</p>';
@@ -89,19 +86,17 @@ class RunkeeperFeedWidget extends WP_Widget
 						$format = 'D, j M Y H:i:s';
 						// Mon, 29 Aug 2011 18:47:00
 						$date = DateTime::createFromFormat($format, $result->{'items'}[0]->{'start_time'});
-						echo date_format($date, 'd/m/Y :: H:i');
-					echo '</div>';
-					echo '<div class="latest">';
-						echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[0]->{'uri'}, 'activity', 1, 17) . "'>" . $result->{'items'}[0]->{'type'} . "</a>";
+						$formattedDate = date_format($date, 'M jS');
+						echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[0]->{'uri'}, 'activity', 1, 17) . "'>" . $formattedDate . "</a>";
 					echo '</div>';
 					echo '<div class="activity">';
 						echo '<div class="activity-reflection">&nbsp;</div>';
 						echo '<div class="distance">';
 							echo '<div class="label">Distance</div>';
 							echo '<div class="result">';
-								echo round($result->{'items'}[0]->{'total_distance'}/1000, 2);
+								echo round($result->{'items'}[0]->{'total_distance'}/1000*0.621371, 2);
 							echo '</div>';
-							echo '<div class="unit">km</div>';
+							echo '<div class="unit">mi</div>';
 						echo '</div>';
 						echo '<div class="divider">&nbsp;</div>';
 						echo '<div class="duration">';
@@ -111,6 +106,14 @@ class RunkeeperFeedWidget extends WP_Widget
 							echo '</div>';
 							echo '<div class="unit">h:m:s</div>';
 						echo '</div>';
+						echo '<div class="divider">&nbsp;</div>';
+						echo '<div class="pace">';
+							echo '<div class="label">Pace</div>';
+							echo '<div class="result">';
+								echo calcPace($result->{'items'}[0]->{'duration'}, $result->{'items'}[0]->{'total_distance'}/1000*0.621371);
+							echo '</div>';
+							echo '<div class="unit">m/m</div>';
+						echo '</div>';
 					echo '</div>';
 				echo '</div>';
 
@@ -119,17 +122,18 @@ class RunkeeperFeedWidget extends WP_Widget
 				for( $i=1; $i<$feedLength; $i++ ) {
 					echo '<div class="minor-feed">';
 						echo '<div class="minor-type">';
-							echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[$i]->{'uri'}, 'activity', 1, 17) . "'>" . truncate($result->{'items'}[$i]->{'type'}, 10, '...') . "</a>";
 							$format = 'D, j M Y H:i:s';
 							// Mon, 29 Aug 2011 18:47:00
 							$date = DateTime::createFromFormat($format, $result->{'items'}[$i]->{'start_time'});
-							echo date_format($date, 'd/m/Y - H:i');
+							echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[$i]->{'uri'}, 'activity', 1, 17) . "'>" . date_format($date, 'M jS') . "</a>";
+							
 						echo '</div>';
 						echo '<div class="minor-result-km">';
-							echo round($result->{'items'}[$i]->{'total_distance'}/1000, 2) . ' km';
+							echo round($result->{'items'}[$i]->{'total_distance'}/1000*0.621371, 2) . ' mi';
 						echo '</div>';
 						echo '<div class="minor-result-time">';
-							echo sec2hms($result->{'items'}[$i]->{'duration'}) . ' h:m:s';
+							$pace = calcPace($result->{'items'}[$i]->{'duration'}, $result->{'items'}[$i]->{'total_distance'}/1000*0.621371);
+							echo sec2hms($result->{'items'}[$i]->{'duration'}) . '&nbsp;(' . $pace . '&nbsp;m/m)';
 						echo '</div>';
 					echo '</div>';
 					
@@ -234,6 +238,16 @@ function RunkeeperFeedInit() {
 }
 add_action('widgets_init', 'RunkeeperFeedInit');
 
+/**
+* Calculate pace
+*/
+function calcPace($sec, $dist) {
+  $min = $sec / 60;
+  $minPace = floor($min / $dist);
+  $secPace = floor(($min / $dist - $minPace) * 60);
+
+  return $minPace . ":" . $secPace;
+}
 
 /**
 * Converts seconds to h:m:s notation.
@@ -249,7 +263,9 @@ function sec2hms ($sec, $padHours = false) {
 	$hours = intval(intval($sec) / 3600); 
 
 	// add hours to $hms (with a leading 0 if asked for)
-	$hms .= ($padHours) ? str_pad($hours, 2, "0", STR_PAD_LEFT). ":" : $hours. ":";
+	if ($hours > 0) {
+		$hms .= ($padHours) ? str_pad($hours, 2, "0", STR_PAD_LEFT). ":" : $hours. ":";
+	}
 
 	// dividing the total seconds by 60 will give us the number of minutes
 	// in total, but we're interested in *minutes past the hour* and to get
