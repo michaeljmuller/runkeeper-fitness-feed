@@ -676,7 +676,7 @@
 	font-style: normal;
 	font-weight: bold;
 	color: #2A5DB0;
-	margin-right: 20px;
+	margin-right: 0px;
 }
 
 .rk-wdgt-wpr-large .minor-type a:hover {
@@ -722,6 +722,14 @@
 	background-color: #666;
 	border-bottom-left-radius: 10px;
 	border-bottom-right-radius: 10px;
+}
+
+.reldate {
+	font-weight: normal;
+}
+
+.minor-reldate {
+	font-size: 15px;
 }
 
 /*  --------------- Large Small Styles --------------- */

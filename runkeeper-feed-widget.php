@@ -87,7 +87,9 @@ class RunkeeperFeedWidget extends WP_Widget
 						// Mon, 29 Aug 2011 18:47:00
 						$date = DateTime::createFromFormat($format, $result->{'items'}[0]->{'start_time'});
 						$formattedDate = date_format($date, 'M jS');
-						echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[0]->{'uri'}, 'activity', 1, 17) . "'>" . $formattedDate . "</a>";
+						$reldate = createRelativeDateString($date->getTimestamp());
+						echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[0]->{'uri'}, 'activity', 1, 17) . "'>" . $formattedDate . "</a>" 
+						. " <span class='reldate'>($reldate)</span>";
 					echo '</div>';
 					echo '<div class="activity">';
 						echo '<div class="activity-reflection">&nbsp;</div>';
@@ -125,15 +127,16 @@ class RunkeeperFeedWidget extends WP_Widget
 							$format = 'D, j M Y H:i:s';
 							// Mon, 29 Aug 2011 18:47:00
 							$date = DateTime::createFromFormat($format, $result->{'items'}[$i]->{'start_time'});
-							echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[$i]->{'uri'}, 'activity', 1, 17) . "'>" . date_format($date, 'M jS') . "</a>";
-							
+							$reldate = createRelativeDateString($date->getTimestamp());
+							echo "<a href='" . $profile->{'profile'} . substr_replace($result->{'items'}[$i]->{'uri'}, 'activity', 1, 17) . "'>" . date_format($date, 'M jS') . "</a>"
+							. " <span class='minor-reldate'>($reldate)</span>";
 						echo '</div>';
 						echo '<div class="minor-result-km">';
 							echo round($result->{'items'}[$i]->{'total_distance'}/1000*0.621371, 2) . ' mi';
 						echo '</div>';
 						echo '<div class="minor-result-time">';
 							$pace = calcPace($result->{'items'}[$i]->{'duration'}, $result->{'items'}[$i]->{'total_distance'}/1000*0.621371);
-							echo sec2hms($result->{'items'}[$i]->{'duration'}) . '&nbsp;(' . $pace . '&nbsp;m/m)';
+							echo sec2hms($result->{'items'}[$i]->{'duration'}) . ', ' . $pace . '&nbsp;m/m';
 						echo '</div>';
 					echo '</div>';
 					
@@ -285,6 +288,20 @@ function sec2hms ($sec, $padHours = false) {
 	// done!
 	return $hms;
     
+}
+
+function createRelativeDateString($date) {
+	date_default_timezone_set('America/Denver');
+	$justTheDate = strtotime(date('M j, Y', $date));
+	$justTodaysDate = strtotime(date('M j, Y'));
+	$reldays = ($justTheDate - $justTodaysDate) / 86400; 
+	if ($reldays == 0) {
+		return "today";
+	}
+	if ($reldays == -1) {
+		return "yesterday";
+	}
+	return abs($reldays) . " days ago";
 }
 
 /**
